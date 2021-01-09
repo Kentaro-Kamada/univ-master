@@ -1,0 +1,854 @@
+// neccessary load search.js
+var natResult = [] ;
+var prvResult = [] ;
+var Favorites = [] ;
+
+$(function() {
+    var h = $(window).height(); // ブラウザウィンドウの高さを取得する
+    $('#result').css('display','none'); // コンテンツを非表示にする
+    $('#loader-bg ,#loader').height(h).css('display','block');//ローディング画像を表示
+});
+
+$(document).ready( function(){
+    // search
+    search_main() ;
+
+    // set search condition(from search.js)
+    var append_class = [ '.fn_nat', '.fn_prv' ] ;
+    var append_header = [ '' , '_s' ] ;
+    
+    setSearchItems( append_class, append_header, true ) ;
+
+    // get favorite list
+    displayFavoriteList( 5 ) ;
+}) ;
+
+
+function search_main() {
+    // get search condition from loalstorage
+    var national_condition, private_condition, is_prv_search ;
+
+    var params = getURLParameter() ;
+    var device = ( ( params["device"] && params["device"] == "sp" ) || location.href.match( '/sp/' ) ) ? "sp" : "pc" ;
+
+    national_condition = localStorage.getItem('search') ;
+    if( !national_condition ) {
+        national_condition = "" ;
+        private_condition = "" ;
+        is_prv_search = true ;
+    }
+    else {
+        var cond_array = JSON.parse( localStorage.getItem('search') )
+//        var prv_cond = [ 'type', 'course', 'university', 'faculty', 'department', 'prefecture' ] ;
+        var prv_cond = { 
+            'type'       : 'type',
+            'course'     : 'curr',
+            'university' : 'univ',
+            'faculty'    : 'facu',
+            'department' : 'sub',
+            'prefecture' : 'prefe'
+        } ;
+        var other_cond = [ 'major', 'qualification', 'degree_department', 'admission', 'transfer', 'is_consideration',
+                           'is_dormitory', 'payment', 'is_return', 'is_scholarship', 'is_reduction' ] ;
+        var prv_cond_ary = {} ;
+        is_prv_search = ( !cond_array['type'] ) ? true : false ;
+        if( !cond_array['type'] ) {
+            is_prv_search = true ;
+            for( var a = 0 ; a < other_cond.length ; a++ ) {
+                if( cond_array[other_cond[a]] && cond_array[other_cond[a]] != '' ) {
+                    is_prv_search = false ;
+                    break ;
+                }
+            }
+            if( is_prv_search ) {
+                for( var prv_param in prv_cond ) {
+                    if( cond_array[prv_param] ) {
+                        // convert search parameter
+                        if( prv_param == 'course' ) {
+                            prv_cond_ary[prv_cond[prv_param]] = ( "0000" + parseInt(cond_array[prv_param]) ).slice( -4 ) ;
+                        }
+                        else {
+                            prv_cond_ary[prv_cond[prv_param]] = cond_array[prv_param] ;
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            is_prv_search = false ;
+            for( var prv_param in prv_cond ) {
+                if( cond_array[prv_param] ) {
+                    // convert search parameter
+                    if( prv_param == 'course' ) {
+                        prv_cond_ary[prv_cond[prv_param]] = ( "0000" + parseInt(cond_array[prv_param]) ).slice( -4 ) ;
+                    }
+                    else if( prv_param == 'type') {
+                        if( cond_array[prv_param].match( '07' ) ) {
+                            is_prv_search = true ;
+                        }
+                    }
+                    else {
+                        prv_cond_ary[prv_cond[prv_param]] = cond_array[prv_param] ;
+                    }
+                }
+            }
+        }
+        private_condition = JSON.stringify( prv_cond_ary ) ;
+    }
+
+
+    var p = $.when( 
+                searchNationalUniv(device, national_condition), 
+                searchPrivateUniv(device, private_condition, is_prv_search)
+            ) ;
+
+    p.done( function( nat_data, prv_data ) {
+        // display table
+        natResult = nat_data ;
+        prvResult = prv_data ;
+        displayResultTable( 3, natResult, prvResult, 12, 12, 10, 10, 1, 1 ) ;
+    
+        $('#loader-bg').fadeOut(400);// ローディングを隠す
+        $('#loader').fadeOut(400);
+        $('#result').css('display', 'block');// コンテンツを表示する
+    
+    } ) ;
+
+    if( localStorage.getItem('favList') ) {
+        Favorites = JSON.parse( localStorage.getItem('favList') ) ;
+        if( Favorites == null ) {
+            Favorites = [] ;
+        }
+    }
+    else {
+        Favorites = [] ;
+    }
+
+}
+
+function searchNationalUniv( device, condition ) {
+
+    var df = $.Deferred() ;
+
+    // post national univ search
+    var national_result ;
+    $.post(
+        "/php/searchNationalUniv.php",
+        {
+            "device" : device,
+            "condition" : condition
+        },
+        function( data ) {
+            if( data ) {
+                national_result = JSON.parse( data ) ;
+                // search error
+                if( national_result["Error"] ) {
+                    national_result = "" ;
+                    $( '#result_kokkouritsu' ).find( '.result_data_list' ).text( '国公立・株式会社立の情報を取得できませんでした。' ) ;
+                    df.resolve( "" ) ;
+                }
+                // display result
+                else {
+                    // object -> array
+                    var nat_data = $.map( national_result, function(value, index) { return [value]; });
+                    //displayResultTable( 1, nat_data, null, 1, 1, 10, 10, 1, 1 ) ;
+                    //natResult = nat_data ;
+                    df.resolve( nat_data ) ;
+                }
+            }
+            else {
+                national_result = "" ;
+                df.resolve( nat_data ) ;
+            }
+        }
+    ) ;
+
+    return df.promise() ;
+}
+
+
+function searchPrivateUniv( device, condition, is_prv_search ) {
+
+    var df = $.Deferred() ;
+
+    if( !is_prv_search ) {
+        df.resolve( "" ) ;
+        return df.promise() ;
+    }
+
+    var private_result ;
+    // post private univ search
+    $.post(
+        //""/php/searchNationalUniv.php"php/privateSearch.php",
+        "https://jpcupprd.powercms.hosting/koukai/php/privateSearch.php",
+        {
+            "device" : device,
+            "condition" : condition
+        },
+        function( data ) {
+            if( data ) {
+                private_result = JSON.parse( data ) ;
+                // search error
+                if( private_result["Error"] ) {
+                    private_result = "" ;
+                    //alert( data['Error'] ) ;
+                    // dislay error message
+                    $( '#result_shigaku' ).find( '.result_data_list' ).text( '私学の情報を取得できませんでした。' ) ;
+                    df.resolve( "" ) ;
+                }
+                // display result
+                else {
+                    // object -> array
+                    var prv_data = $.map( private_result, function(value, index) { return [value]; });
+                    df.resolve( prv_data ) ;
+                }
+            }
+            else {
+                private_result = "" ;
+                df.resolve( "" ) ;
+            }
+        }
+    ) ;
+
+    return df.promise() ;
+}
+
+function displayResultTable( kind, nat_result, prv_result, nat_order, prv_order, nat_disp_num, prv_disp_num, nat_page, prv_page ) {
+
+    // national result table
+    if( kind == 1 || kind == 3 ) {
+        var nat_univ_template = ( function() { /*
+            <div class="cunv_col">
+                <div class="cunv_col_inner">
+                    <div class="logo_daigaku">
+                        <figure>__univ_logo__</figure>
+                    </div>
+                    <div class="info_daigaku">
+                        <ul class="cunv_status col3">
+                            <li>__univ_pref__</li>
+                            <li>__univ_type__</li>
+                            <li>__univ_kind__</li>
+                        </ul>
+                        <div class="name_daigaku">
+                            <h3><a href="__univ_link__" target="_blank">__univ_name__</a></h3>
+                            <div class="fav">
+                                <button class="btn_fav1 __univ_fav_on__" id="fav_nat_univ___univ_id__"><span id="favlab___univ_id__">お気に入り登録</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+                <div class="gakubu_list">
+                    <dl class="gakubu_dl">
+                        <dt>
+                            <p class="btn_title">学部・研究科名（短期大学の学科名）</p>
+                            <p class="btn_open"><span>開く</span></p>
+                        </dt>
+                        <dd class="gakubu_dd">
+                            <div class="dd_btn">
+                                <button class="btn_gakubu_all"><span>すべてを表示する</span></button>
+                            </div>
+                            __faculty_data__
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        */}).toString().replace(/(\n)/g, '').split('*')[1] ;
+
+        var nat_fac_template = ( function() { /*
+            <div class="gakubu_data" data-contain="__data_contain__" __is_display__>
+                <ul class="cunv_status">
+                    <li>__fac_pref__</li>
+                </ul>
+                <div class="gakubu_data_col">
+                    <div class="name_gakubu">
+                        <h4><a href="__fac_link__" target="_blank">__fac_name__</a></h4>
+                        <div class="fav">
+                            <button class="btn_fav1 __fac_fav_on__" id="fav_nat_fac___org_id__"><span id="favlab_org_id__">お気に入り登録</span></button>
+                        </div>
+                    </div>
+                    <div class="gakubu_gaitou">
+                        <p class="ex_icon">検索該当コンテンツ<span class="tooltip_icon_all"><img src="/assets/img/icon_tooltip_help.svg" alt="検索該当コンテンツについて"></span></p>
+                        <ul class="tabicon_list">
+                            <li>__hit1__<span class="tooltip"><span>教育研究上の目的と3つの方針</span></span></li>
+                            <li>__hit2__<span class="tooltip"><span>学部・研究科等の特色等</span></span></li>
+                            <li>__hit3__<span class="tooltip"><span>教育課程</span></span></li>
+                            <li>__hit4__<span class="tooltip"><span>資格</span></span></li>
+                            <li>__hit5__<span class="tooltip"><span>入試</span></span></li>
+                            <li>__hit6__<span class="tooltip"><span>教員</span></span></li>
+                            <li>__hit7__<span class="tooltip"><span>学生</span></span></li>
+                            <li>__hit8__<span class="tooltip"><span>キャンパス</span></span></li>
+                            <li>__hit9__<span class="tooltip"><span>費用及び経済的支援</span></span></li>
+                            <li>__hit10__<span class="tooltip"><span>進路</span></span></li>
+                        </ul>
+                    </div>
+                    <ul class="gakka_list">
+                        __department_list__
+                    </ul>
+                </div>
+            </div>
+        */}).toString().replace(/(\n)/g, '').split('*')[1] ;
+
+        if( nat_result != null && nat_result.length > 0 ) {
+            // sort data
+            var order = "" ;
+            if( nat_order != null ) {
+                // get order
+                if( nat_order > 0 ) {
+                    order = parseInt(nat_order) ;
+                }
+                else {
+                    order = parseInt($('.sort_order.fn_nat').find('.btn_sort.selected').val());
+                }
+                // sort data
+                if( order % 10 == 1 ) {
+                    if( $('.sort_order.fn_nat').find('.btn_sort').children('span').text() == '▼' ) {
+                        nat_result.sort( function(a,b) {
+                            if( a.univ.pref_cd > b.univ.pref_cd ) return -1;
+                            if( a.univ.pref_cd < b.univ.pref_cd ) return 1;
+                            return 0 ;
+                        } ) ;
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < nat_result.length ; i++ ) {
+                                nat_result[i].faculty.sort( function(a,b){
+                                    if( a.pref_cd > b.pref_cd ) return -1;
+                                    if( a.pref_cd < b.pref_cd ) return 1;
+                                }) ;
+                            } 
+                        }
+                    }
+                    else {
+                        nat_result.sort( function(a,b) {
+                            if( a.univ.pref_cd < b.univ.pref_cd ) return -1;
+                            if( a.univ.pref_cd > b.univ.pref_cd ) return 1;
+                            return 0 ;
+                        } ) ; 
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < nat_result.length ; i++ ) {
+                                nat_result[i].faculty.sort( function(a,b){
+                                    if( a.pref_cd < b.pref_cd ) return -1;
+                                    if( a.pref_cd > b.pref_cd ) return 1;
+                                }) ;
+                            } 
+                        }
+                    }
+                }
+                else {
+                    if( $('.sort_order.fn_nat').find('.btn_sort').children('span').text() == '▼' ) {
+                        nat_result.sort( function(a,b) {
+                            if( a.univ.kana > b.univ.kana ) return -1;
+                            if( a.univ.kana < b.univ.kana ) return 1;
+                            return 0 ;
+                        } ) ;
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < nat_result.length ; i++ ) {
+                                nat_result[i].faculty.sort( function(a,b){
+                                    if( a.kana > b.kana ) return -1;
+                                    if( a.kana < b.kana ) return 1;
+                                }) ;
+                            } 
+                        }
+                    }
+                    else {
+                        nat_result.sort( function(a,b) {
+                            if( a.univ.kana < b.univ.kana ) return -1;
+                            if( a.univ.kana > b.univ.kana ) return 1;
+                            return 0 ;
+                        } ) ; 
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < nat_result.length ; i++ ) {
+                                nat_result[i].faculty.sort( function(a,b){
+                                    if( a.kana < b.kana ) return -1;
+                                    if( a.kana > b.kana ) return 1;
+                                }) ;
+                            } 
+                        }
+                    }
+                }
+                natResult = nat_result ;
+            }
+
+            // clear result
+            $('#fn_nat_univ_list').html( "" ) ;
+
+            var row_array = [] ;
+            for( var i = 0 ; i < nat_result.length ; i++ ) {
+                if( nat_result[i]['univ'] == null ) {
+                    continue ;
+                }
+
+                var univ = nat_result[i]['univ'] ;
+                var row = nat_univ_template ;
+
+                // replace search result
+                row = row.replace( /__univ_name__/g, univ['name'] ) ;
+                row = row.replace( /__univ_pref__/g, univ['pref'] ) ;
+                row = row.replace( /__univ_type__/g, univ['type'] ) ;
+                row = row.replace( /__univ_kind__/g, univ['kind'] ) ;
+                row = row.replace( /__univ_link__/g, univ['url'] ) ;
+                row = row.replace( /__univ_id__/g,   univ['id'] ) ;
+
+                // logo image
+                if( univ['logo'] ) {
+                    var logo_html = '<a href="' + univ['url'] + '" target="_blank"><img src="' + univ['logo'] + '" alt="' + univ['name'] + '"></a>' ;
+                    row = row.replace( /__univ_logo__/g, logo_html ) ;
+                }
+                else {
+                    row = row.replace( /__univ_logo__/g, '' ) ;
+                }
+
+                // filter favorite
+                if( Favorites != null ) {
+                    var fav_chk = Favorites.filter( function(item, index){
+                        if( item.id == univ['id'] ) return true ;
+                    }) ;
+                    if( fav_chk.length > 0  ) {
+                        row = row.replace( /__univ_fav_on__/g, 'fav_on' ) ;
+                    }
+                    else {
+                        row = row.replace( /__univ_fav_on__/g, '' ) ;
+                    }
+                }
+                else {
+                    row = row.replace( /__univ_fav_on__/g, '' ) ;
+                }
+
+                if( nat_result[i]['faculty'] != null ) {
+                    var fac_row_array = [] ;
+                    for( var j = 0 ; j < nat_result[i]['faculty'].length ; j++  ) {
+                        var fac = nat_result[i]['faculty'][j] ;
+                        var fac_row = nat_fac_template ;
+
+                        // replace search result
+                        fac_row = fac_row.replace( /__univ_id__/g,  univ['id'] ) ;
+                        fac_row = fac_row.replace( /__fac_pref__/g, fac['pref'] ) ;
+                        fac_row = fac_row.replace( /__fac_link__/g, fac['url'] ) ;
+                        fac_row = fac_row.replace( /__fac_name__/g, fac['name'] ) ;
+                        fac_row = fac_row.replace( /__org_id__/g,   fac['id'] ) ;
+                        fac_row = fac_row.replace( /__department_list__/g, fac['dep_link'] ) ;
+
+                        // filter favorite
+                        if( Favorites != null ) {
+                            var fav_chk = Favorites.filter( function(item, index){
+                                if( item.id == fac['id'] ) return true ;
+                            }) ;
+                            if( fav_chk.length > 0 ) {
+                                fac_row = fac_row.replace( /__fac_fav_on__/g, 'fav_on' ) ;
+                                fac_row = fac_row.replace( /__fac_fav_text__/g, 'お気に入り登録済み' ) ;
+                            }
+                            else {
+                                fac_row = fac_row.replace( /__fac_fav_on__/g, '' ) ;
+                                fac_row = fac_row.replace( /__fac_fav_text__/g, 'お気に入り登録' ) ;
+                            }
+                        }
+                        else {
+                            fac_row = fac_row.replace( /__fac_fav_text__/g, 'お気に入り登録' ) ;
+                        }
+
+                        // contents
+                        var contents = "" ;
+                        var data_contain = 0 ;
+                        for( var cont in fac['result'] ) {
+                            var link = "" ;
+                            link += '<a href="' + fac['result'][cont]['url'] + '" target="_blank" class="ttp">' ;
+                            link += '<img src="/assets/img/tabicon/' + fac['result'][cont]['icon'] + '" alt="' + fac['result'][cont]['alt'] + '"></a>' ;
+                            if( fac['result'][cont]['icon'].indexOf( '_off' ) === -1 ) {
+                                data_contain++ ;
+                            }
+                            var pattern = new RegExp( '__' + cont + '__', 'g' ) ;
+                            fac_row = fac_row.replace( pattern, link ) ;
+                        }
+                        fac_row = fac_row.replace( /__data_contain__/g, data_contain ) ;
+                        if( data_contain == 0 ) {
+                            fac_row = fac_row.replace( /__is_display__/g, 'style="display:none;"' ) ;
+                        }
+                        else {
+                            fac_row = fac_row.replace( /__is_display__/g, '' ) ;
+                        }
+
+                        fac_row_array.push( fac_row ) ;
+                    }
+                    row = row.replace( /__faculty_data__/g, fac_row_array.join( '' ) ) ;
+                }
+                else {
+                    row = row.replace( /__faculty_data__/g, '' ) ;
+                }
+                row_array.push( row ) ; 
+            }
+
+            $('#fn_nat_univ_list').html( row_array.join( '' ) ) ;
+
+            $('.fn_nat_count').text( nat_result.length ) ;
+        }
+        else {
+            $('.fn_nat_count').text( 0 ) ;
+        }
+
+        // display pages
+        var number = 10 ;
+        if( !nat_disp_num ) {
+            number = $( '.list_display_num.fn_nat' ).find('.btn_display_num.selected').text() ;
+            number = number.replace( /[^0-9]/g, "" ) ;
+        }
+        else {
+            number = nat_disp_num ; 
+        }
+
+        displayPages( 1, 1, number ) ;
+    }
+
+    // private result table
+    if( kind == 2 || kind == 3 ) {
+        var prv_univ_template = ( function() { /*
+            <div class="cunv_col">
+                <div class="cunv_col_inner">
+                    <div class="info_daigaku">
+                        <ul class="cunv_status col3">
+                            <li>__univ_pref__</li>
+                            <li>私立</li>
+                            <li>__univ_kind__</li>
+                        </ul>
+                        <div class="name_daigaku">
+                            <h3><a href="__univ_url__" target="_blank">__univ_name__</a></h3>
+                            <div class="fav">
+                                <button class="btn_fav1 __univ_fav_on__" id="fav_prv_univ___univ_id__"><span id="favlab___univ_id__">お気に入り登録</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+                <div class="gakubu_list">
+                    <dl class="gakubu_dl">
+                        <dt>
+                            <p class="btn_title">学部・研究科名（短期大学の学科名）</p>
+                            <p class="btn_open"><span>開く</span></p>
+                        </dt>
+                        <dd class="gakubu_dd">
+                            <div class="dd_btn">
+                                
+                            </div>
+                            __faculty_data__
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        */}).toString().replace(/(\n)/g, '').split('*')[1] ;
+
+        var prv_fac_template = ( function() { /*
+            <div class="gakubu_data">
+                <ul class="cunv_status">
+                    <li>__fac_pref__</li>
+                </ul>
+                <div class="gakubu_data_col">
+                    <div class="name_gakubu">
+                        <h4><a href="__fac_url__" target="_blank">__fac_name__</a></h4>
+                        <div class="fav">
+                            <button class="btn_fav1 __fac_fav_on__" id="fav_prv_fac___org_id__"><span id="favlab_org_id__">お気に入り登録</span></button>
+                        </div>
+                    </div>
+                    <ul class="gakka_list">
+                        __department_list__
+                    </ul>
+                </div>
+            </div>
+        */}).toString().replace(/(\n)/g, '').split('*')[1] ;
+
+        // sort data
+        if( prv_result != null && prv_result.length > 0 ) {
+            var order = "" ;
+            if( prv_order != null ) {
+                // get order
+                if( prv_order > 0 ) {
+                    order = parseInt(prv_order) ;
+                }
+                else {
+                    order = parseInt($('.sort_order.fn_prv').find('.btn_sort.selected').val()) ;
+                }
+                // sort data
+                if( order % 10 == 1 ) {
+                    if( $('.sort_order.fn_prv').find('.btn_sort').children('span').text() == '▼' ) {
+                        prv_result.sort( function(a,b) {
+                            if( a.univ.pref_cd > b.univ.pref_cd ) return -1;
+                            if( a.univ.pref_cd < b.univ.pref_cd ) return 1;
+                            return 0 ;
+                        } ) ;
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < prv_result.length ; i++ ) {
+                                prv_result[i].faculty.sort( function(a,b){
+                                    if( a.pref_cd > b.pref_cd ) return -1;
+                                    if( a.pref_cd < b.pref_cd ) return 1;
+                                }) ;
+                            } 
+                        }
+                    }
+                    else {
+                        prv_result.sort( function(a,b) {
+                            if( a.univ.pref_cd < b.univ.pref_cd ) return -1;
+                            if( a.univ.pref_cd > b.univ.pref_cd ) return 1;
+                            return 0 ;
+                        } ) ; 
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < prv_result.length ; i++ ) {
+                                prv_result[i].faculty.sort( function(a,b){
+                                    if( a.pref_cd < b.pref_cd ) return -1;
+                                    if( a.pref_cd > b.pref_cd ) return 1;
+                                }) ;
+                            }
+                        }
+                    }
+                }
+                else {
+                    if( $('.sort_order.fn_prv').find('.btn_sort').children('span').text() == '▼' ) {
+                        prv_result.sort( function(a,b) {
+                            if( a.univ.kana > b.univ.kana ) return -1;
+                            if( a.univ.kana < b.univ.kana ) return 1;
+                            return 0 ;
+                        } ) ;
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < prv_result.length ; i++ ) {
+                                prv_result[i].faculty.sort( function(a,b){
+                                    if( a.kana > b.kana ) return -1;
+                                    if( a.kana < b.kana ) return 1;
+                                }) ;
+                            } 
+                        }
+                    }
+                    else {
+                        prv_result.sort( function(a,b) {
+                            if( a.univ.kana < b.univ.kana ) return -1;
+                            if( a.univ.kana > b.univ.kana ) return 1;
+                            return 0 ;
+                        } ) ; 
+                        if( parseInt( order / 10 ) == 0 ) {
+                            for( var i = 0 ; i < prv_result.length ; i++ ) {
+                                prv_result[i].faculty.sort( function(a,b){
+                                    if( a.kana < b.kana ) return -1;
+                                    if( a.kana > b.kana ) return 1;
+                                }) ;
+                            } 
+                        }
+                    }
+                }
+                prvResult = prv_result ;
+            }
+
+            // clear result
+            $('#fn_prv_univ_list').html( "" ) ;
+
+            var row_array = [] ;
+            for( var i = 0 ; i < prv_result.length ; i++ ) {
+                if( prv_result[i]['univ'] == null ) {
+                    continue ;
+                }
+
+                var univ = prv_result[i]['univ'] ;
+                var row = prv_univ_template ;
+
+                // replace search result
+                row = row.replace( /__univ_name__/g, univ['name'] ) ;
+                row = row.replace( /__univ_pref__/g, univ['hq_pref'] ) ;
+                row = row.replace( /__univ_kind__/g, univ['kind'] ) ;
+                row = row.replace( /__univ_url__/g, univ['url'] ) ;
+                row = row.replace( /__univ_id__/g,   univ['url_num'] ) ;
+
+                // filter favorite
+                if( Favorites != null ) {
+                    var fav_chk = Favorites.filter( function(item, index){
+                        if( item.id == univ['url_num'] ) return true ;
+                    }) ;
+                    if( fav_chk.length > 0 ) {
+                        row = row.replace( /__univ_fav_on__/g, 'fav_on' ) ;
+                    }
+                    else {
+                        row = row.replace( /__univ_fav_on__/g, '' ) ;
+                    }
+                }
+
+                if( prv_result[i]['faculty'] != null ) {
+                    var fac_row_array = [] ;
+                    for( var j = 0 ; j < prv_result[i]['faculty'].length ; j++  ) {
+                        var fac = prv_result[i]['faculty'][j] ;
+                        var fac_row = prv_fac_template ;
+
+                        // replace search result
+                        fac_row = fac_row.replace( /__univ_id__/g,  univ['url_num'] ) ;
+                        fac_row = fac_row.replace( /__fac_pref__/g, fac['pref'].replace( /,/g, '<br />' ) ) ;
+                        fac_row = fac_row.replace( /__fac_url__/g, fac['url'] ) ;
+                        fac_row = fac_row.replace( /__fac_name__/g, fac['name'] ) ;
+                        fac_row = fac_row.replace( /__org_id__/g,   fac['url_num'] ) ;
+
+                        // filter favorite
+                        if( Favorites != null ) {
+                            var fav_chk = Favorites.filter( function(item, index){
+                                if( item.id == fac['url_num'] ) return true ;
+                            }) ;
+                            if( fav_chk.length > 0 ) {
+                                fac_row = fac_row.replace( /__fac_fav_on__/g, 'fav_on' ) ;
+                            }
+                            else {
+                                fac_row = fac_row.replace( /__fac_fav_on__/g, '' ) ;
+                            }
+                        }
+
+                        // department info
+                        var dep_row = "" ;
+                        for( var k = 0 ; k < fac['department'].length ; k++ ) {
+                            var dep = fac['department'][k] ;
+                            dep_row += '<li><a href="' + dep['url'] + '" target="_blank">' + dep['name'] + '</a></li>' ;
+                        }
+                        fac_row = fac_row.replace( /__department_list__/g, dep_row ) ;
+                        fac_row_array.push( fac_row ) ;
+                    }
+                    row = row.replace( /__faculty_data__/g, fac_row_array.join( '' ) ) ;
+                }
+                else {
+                    row = row.replace( /__faculty_data__/g, '' ) ;
+                }
+                row_array.push( row ) ; 
+            }
+
+            $('#fn_prv_univ_list').html( row_array.join( '' ) ) ;
+
+            // set count
+            $('.fn_prv_count').text( prv_result.length ) ;
+        }
+        else {
+            $('.fn_prv_count').text( 0 ) ;
+        }
+    
+        // display pages
+        var number = 10 ;
+        if( !prv_disp_num ) {
+            number = $( '.list_display_num.fn_prv' ).find('.btn_display_num.selected').text() ;
+            number = number.replace( /[^0-9]/g, "" ) ;
+        }
+        else {
+            number = prv_disp_num ; 
+        }
+        // display pages
+        displayPages( 2, 1, number ) ;
+
+    }
+
+    // finished 
+    ToolTip_Func() ;
+    if( $('.fn_prv_count').text() == 0 ) {
+        $('.tab_kokkouritsu').addClass( 'selected' ) ;
+        $('.tab_shigaku').removeClass( 'selected' ) ;
+//        if($($('.tab_kokkouritsu').attr("href")).css("display")==="none"){
+           $("ul.result_tab li a").removeClass("selected");
+           $('.tab_kokkouritsu').addClass("selected");
+           $(".result_panel .result_data").hide(0);
+           $($('.tab_kokkouritsu').attr("href")).fadeIn("fast");
+//        }
+    }
+
+}
+
+
+// faculty display control
+$(document).on("click", ".btn_gakubu_all", function () {
+    // clicked element
+    var click_elem = $(this) ;
+
+    // get target gakubu_gaitou data 
+    var is_selected = $(this).hasClass( 'selected' ) ;
+    var gakubu_elem = $(this).parents( '.gakubu_dd' ).find( '.gakubu_data' ) ;
+
+    if( is_selected ) {
+        // show hit only
+        $(gakubu_elem).each(function(){
+            if( $(this).data('contain') != 0 ) {
+                $(this).show() ;
+            }
+            else {
+                $(this).hide() ;
+            }
+        }) ;
+        //$(click_elem).children('span').text( '該当のみ表示する' ) ;
+        $(click_elem).removeClass( 'selected' ) ;
+    }
+    else {
+        // show all
+        $(gakubu_elem).each(function(){
+            $(this).show() ;
+        }) ;
+        //$(click_elem).children('span').text( 'すべてを表示する' ) ;
+        $(click_elem).addClass( 'selected' ) ;
+    }
+}) ;
+
+
+// sort button clicked
+$(document).on("click", ".btn_sort", function () {
+    var kind = $(this).parents( '.sort_order' ).hasClass( 'fn_nat' ) ;
+    var order = $(this).val() ;
+
+    $(this).parents( '.sort_order' ).find( 'button' ).each( function( index, elem ) {
+        if( order == $(elem).val() ){
+            if( $(this).hasClass( 'selected' ) ) {
+                if( $(this).find('span').text() == '▲' ) {
+                    $(this).find('span').text('▼') ;
+                }
+                else {
+                    $(this).find('span').text('▲') ;
+                }
+            }
+            else {
+                $(this).addClass( 'selected' ) ;
+                $(this).find('span').text('▲') ;
+            }
+        }
+        else {
+            $(this).removeClass( 'selected' ) ;
+            $(this).find('span').text( '' ) ;
+        }
+    }) ;
+
+    if( kind ) {
+        displayResultTable( 1, natResult, null, order, null, null, null, 1, 1 ) ;
+    }
+    else {
+        displayResultTable( 2, null, prvResult, null, order, null, null, 1, 1 ) ;
+    }
+
+
+}) ;
+
+
+
+// re-search
+$(document).on("click", ".search_btn", function () {
+
+    var parent = $(this).parents('div.result_form') ;
+
+    var kind = 1 ;
+    if( $(this).hasClass( 'fn_mobile' ) ) {
+        kind = 2 ;
+        parent = $(this).parents('div.searchbnt_block').prev('div.result_data_inner.form') ; 
+    }
+    
+    // get condition
+    getSeachCondition( parent, kind ) ;
+
+    // reload
+    location.reload() ;
+
+}) ;
+
+function getURLParameter() {
+    var params = {} ;
+
+    // get url parameters
+    if( window.location.search.length > 1 ) {
+        var query = window.location.search.substring( 1 ) ;
+        var parameters = query.split( '&' ) ;
+        for( var i = 0 ; i < parameters.length ; i++ ) {
+            var element = parameters[i].split( '=' ) ;
+            var paramName = decodeURIComponent( element[0] ) ;
+            var paramValue = decodeURIComponent( element[1] ) ;
+        
+            params[paramName] = paramValue ;
+        }
+    }
+    return params ;
+}
+

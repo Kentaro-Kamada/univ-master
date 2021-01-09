@@ -1,0 +1,276 @@
+// page control
+function displayPages( kind, page, number ) {
+
+    var list = '' ;
+    var type = '' ;
+    var count = '' ;
+
+    // result national/public univ
+    if( kind == 1 ) {
+        list = '#fn_nat_univ_list' ;
+        type = '.fn_nat' ;
+        count = '.fn_nat_count' ;
+    }
+    // result private univ
+    else if( kind == 2 ){
+        list = '#fn_prv_univ_list' ;
+        type = '.fn_prv' ;
+        count = '.fn_prv_count' ;
+    }
+    // favorite list
+    else if( kind == 3 ){
+        list = '#fn_fav_list' ;
+        type = '.fn_fav' ;
+        count = '.fn_fav_count' ;
+    }
+    else {
+        return false ;
+    }
+
+
+    // display contents
+    $( list ).children().each( function( index, element ) {
+        if( index >= (page - 1) * number && index < page * number ) {
+            $(element).show() ;
+        }
+        else {
+            $(element).hide() ;
+        }
+    }) ;
+
+    // page control
+    var total =  0 ;
+    $(count).each(function(index, element){total = $(element).text(); return false;}  );
+
+    if( parseInt( total ) == 0 ) {
+        $( '.page_nation'+type ).each(function( index, element ){
+            $(element).html("") ;
+        }) ;
+        return ;
+    }
+
+    total = Math.ceil( parseInt( total ) / number ) ;
+
+
+    // page button
+    $( '.page_nation'+type ).each(function( index, element ){
+        var disp_page = parseInt(page) ;
+        if( total <= 5 || disp_page == 1 || disp_page - 2 < 1 ) {
+            disp_page = 1 ;
+        }
+        else if( disp_page + 2 <= total ) {
+            disp_page = disp_page - 2 ;
+        }
+        else {
+            disp_page = total - 4 ;
+        }
+
+        $(element).html("") ;
+        var page_list = "" ;
+        if( page > 1 && total > 1 ) {
+            page_list += '<li><button class="btn_pn prev2">最初へ</button></li>' ;
+            page_list += '<li><button class="btn_pn prev1">前へ</button></li>' ;
+        }
+        if( disp_page > 1 ) {
+            page_list += '<li>...</li>' ;
+        }
+
+        var max_page = disp_page + 5 ;
+        while( disp_page < max_page && disp_page <= total ) {
+            if( disp_page == page ) {
+                page_list += '<li><button class="num selected">' + disp_page + '</button></li>' ;
+            }
+            else {
+                page_list += '<li><button class="num">' + disp_page + '</button></li>' ;
+            }
+            disp_page++ ;
+        }
+        if( disp_page <= total ) {
+            page_list += '<li>...</li>' ;
+        }
+        if( page < total ) {
+            page_list += '<li><button class="btn_pn next1">次へ</button></li>' ;
+            page_list += '<li><button class="btn_pn next2">最後へ</button></li>' ;
+        }
+        $(element).html( page_list ) ;
+    }) ;
+}
+
+// display number button clicked
+$(document).on("click", ".btn_display_num", function () {
+    var kind = 0 ;
+    $(this).parents('.list_display_num').each(function(){
+        if( $(this).hasClass('fn_nat') ) {
+            kind = 1 ;
+        }
+        else if( $(this).hasClass('fn_prv') ) {
+            kind = 2 ;
+        }
+        else {
+            kind = 3 ;
+        }
+        return false ;
+    });
+
+    var number = $(this).text() ;
+    number = number.replace(/[^0-9]/g, "") ;
+
+    displayPages( kind, 1, number ) ;
+
+    $(this).parents( '.result_title' ).find( 'button' ).each( function() {
+        if( $(this).hasClass( 'selected' ) ) {
+            $(this).removeClass( 'selected' ) ;
+        }
+        else {
+            $(this).addClass( 'selected' ) ;
+        }
+    }) ;
+}) ;
+
+// move number pages
+$(document).on("click", ".num", function () {
+    var kind = 0 ;
+    var number = 0 ;
+    $(this).parents('.page_nation').each(function(){
+        if( $(this).hasClass('fn_nat') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 1 ;
+        }
+        else if( $(this).hasClass('fn_prv') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 2 ;
+        }
+        else {
+            number = $('.btn_display_num.selected').text() ;
+            kind = 3 ;
+        }
+        return false ;
+    });
+
+    number = number.replace(/[^0-9]/g, "") ;
+
+    var page = $(this).text() ;
+
+    displayPages( kind, page, number ) ;
+
+}) ;
+
+// move previous page
+$(document).on("click", ".btn_pn.prev1", function () {
+    var kind = 0 ;
+    var page = 0 ;
+    var number = 0 ;
+    $(this).parents('.page_nation').each(function(){
+        if( $(this).hasClass('fn_nat') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 1 ;
+        }
+        else if( $(this).hasClass('fn_prv') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 2 ;
+        }
+        else {
+            number = $('.btn_display_num.selected').text() ;
+            kind = 3 ;
+        }
+
+        page = parseInt($(this).find('.num.selected').text()) ;
+        
+        return false ;
+    });
+
+    number = number.replace(/[^0-9]/g, "") ;
+
+    displayPages( kind, page-1, number ) ;
+
+}) ;
+
+// move next page
+$(document).on("click", ".btn_pn.next1", function () {
+    var kind = 0 ;
+    var page = 0 ;
+    var number = 0 ;
+    $(this).parents('.page_nation').each(function(){
+        if( $(this).hasClass('fn_nat') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 1 ;
+        }
+        else if( $(this).hasClass('fn_prv') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 2 ;
+        }
+        else {
+            number = $('.btn_display_num.selected').text() ;
+            kind = 3 ;
+        }
+
+        page = parseInt($(this).find('.num.selected').text()) ;
+
+        return false ;
+    });
+
+    number = number.replace(/[^0-9]/g, "") ;
+
+    displayPages( kind, page+1, number ) ;
+
+}) ;
+
+// move start page
+$(document).on("click", ".btn_pn.prev2", function () {
+    var kind = 0 ;
+    var number = 0 ;
+    $(this).parents('.page_nation').each(function(){
+        if( $(this).hasClass('fn_nat') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 1 ;
+        }
+        else if( $(this).hasClass('fn_prv') ) {
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            kind = 2 ;
+        }
+        else {
+            number = $('.btn_display_num.selected').text() ;
+            kind = 3 ;
+        }
+        return false ;
+    });
+
+    number = number.replace(/[^0-9]/g, "") ;
+
+    displayPages( kind, 1, number ) ;
+
+}) ;
+
+// move end page
+$(document).on("click", ".btn_pn.next2", function () {
+    var number = 0 ;
+    var kind = 0 ;
+    var total =  0 ;
+    $(this).parents('.page_nation').each(function(){
+        if( $(this).hasClass('fn_nat') ) {
+            $('.fn_nat_count').each(function(index, element){total = $(element).text(); return false;}  );
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            number = number.replace(/[^0-9]/g, "") ;
+            total = Math.ceil( parseInt( total ) / number ) ;
+            kind = 1 ;
+        }
+        else if( $(this).hasClass('fn_prv') ) {
+            $('.fn_prv_count').each(function(index, element){total = $(element).text(); return false;}  );
+            number = $(this).parents('.result_data_list').find('.btn_display_num.selected').text() ;
+            number = number.replace(/[^0-9]/g, "") ;
+            total = Math.ceil( parseInt( total ) / number ) ;
+            kind = 2 ;
+        }
+        else {
+            $('.fn_fav_count').each(function(index, element){total = $(element).text(); return false;}  );
+            number = $('.btn_display_num.selected').text() ;
+            number = number.replace(/[^0-9]/g, "") ;
+            total = Math.ceil( parseInt( total ) / number ) ;
+            kind = 3 ;
+        }
+        return false ;
+    });
+
+    displayPages( kind, total, number ) ;
+
+}) ;

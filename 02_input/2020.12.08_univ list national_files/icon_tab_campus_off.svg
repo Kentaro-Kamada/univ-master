@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31 20" width="31" height="20">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #d9d7d3;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <g id="icon_tab_campus_off" transform="translate(-1574.5 -731)">
+    <rect id="Rectangle_16" data-name="Rectangle 16" class="cls-1" width="31" height="20" rx="3" transform="translate(1574.5 731)"/>
+    <path id="Triangle_4" data-name="Triangle 4" class="cls-2" d="M3.5,0,7,7H0Z" transform="translate(1583.5 737) rotate(90)"/>
+    <path id="Fill_22" data-name="Fill 22" class="cls-2" d="M14.916,15.5H0V5.231H3.49V0h7.936V5.231h3.489V15.5ZM7.458,2.917A1.625,1.625,0,1,0,9.083,4.542,1.627,1.627,0,0,0,7.458,2.917Z" transform="translate(1585.576 733.401)"/>
+  </g>
+</svg>

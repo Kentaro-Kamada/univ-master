@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31 20" width="31" height="20">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #d9d7d3;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <g id="icon_tab_hiyou_off" transform="translate(-1609.5 -731)">
+    <rect id="Rectangle_16" data-name="Rectangle 16" class="cls-1" width="31" height="20" rx="3" transform="translate(1609.5 731)"/>
+    <path id="Triangle_4" data-name="Triangle 4" class="cls-2" d="M3.5,0,7,7H0Z" transform="translate(1618.5 737) rotate(90)"/>
+    <g id="Group_41" data-name="Group 41" transform="translate(1621.5 732)">
+      <path id="Fill_23" data-name="Fill 23" class="cls-2" d="M0,2.577H11.477V0H0Z" transform="translate(0.992 5.964)"/>
+      <path id="Fill_24" data-name="Fill 24" class="cls-2" d="M0,2.576H11.477V0H0Z" transform="translate(0.992 10.649)"/>
+      <path id="Fill_25" data-name="Fill 25" class="cls-2" d="M0,10.731H2.576V0H0Z" transform="translate(5.443 6.009)"/>
+      <path id="Fill_26" data-name="Fill 26" class="cls-2" d="M2.576,0,5.855,5.773H3.279L0,0Z" transform="translate(1.5 0.739)"/>
+      <path id="Fill_27" data-name="Fill 27" class="cls-2" d="M3.278,0,0,5.773H2.576L5.854,0Z" transform="translate(6.107 0.739)"/>
+    </g>
+  </g>
+</svg>

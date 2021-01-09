@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15.688 16.625" width="16px" height="17px">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #417505;
+      }
+    </style>
+  </defs>
+  <g id="icon_cnr_kyouin" transform="translate(-0.045 -0.901)">
+    <path id="Fill_16" data-name="Fill 16" class="cls-1" d="M5.5,2.75A2.75,2.75,0,1,1,2.75,0,2.75,2.75,0,0,1,5.5,2.75" transform="translate(0.67 5.484)"/>
+    <path id="Fill_17" data-name="Fill 17" class="cls-1" d="M0,5.375v-2a3.375,3.375,0,0,1,6.75,0v2Z" transform="translate(0.045 12.151)"/>
+    <path id="Fill_18" data-name="Fill 18" class="cls-1" d="M13.917,13.583H6.834v-2h5.083V2H0V0H13.917Z" transform="translate(1.815 0.901)"/>
+  </g>
+</svg>

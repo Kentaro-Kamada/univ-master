@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15.8 15.2" width="16px" height="16px">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #417505;
+      }
+    </style>
+  </defs>
+  <g id="icon_cnr_shikaku" transform="translate(-1139 -267)">
+    <path id="パス_162" data-name="パス 162" class="cls-1" d="M15.8,15.2H0V1.5H3.8v2H2v9.7H13.8V3.5H12.4v-2h3.4Z" transform="translate(1139 267)"/>
+    <circle id="楕円形_4" data-name="楕円形 4" class="cls-1" cx="2.5" cy="2.5" r="2.5" transform="translate(1144.4 267)"/>
+    <rect id="長方形_26" data-name="長方形 26" class="cls-1" width="8.1" height="1.4" transform="translate(1142.8 276.4)"/>
+    <path id="パス_163" data-name="パス 163" class="cls-1" d="M10.7,7.6,7.9,4.8,5,7.6,3.7,6.4,7.9,2.2,12,6.4Z" transform="translate(1139 267)"/>
+  </g>
+</svg>

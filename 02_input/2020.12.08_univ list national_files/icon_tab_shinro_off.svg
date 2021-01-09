@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31 20" width="31" height="20">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #d9d7d3;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <g id="icon_tab_shinro_off" transform="translate(-1644.5 -731)">
+    <rect id="Rectangle_16" data-name="Rectangle 16" class="cls-1" width="31" height="20" rx="3" transform="translate(1644.5 731)"/>
+    <path id="Triangle_4" data-name="Triangle 4" class="cls-2" d="M3.5,0,7,7H0Z" transform="translate(1653.5 737) rotate(90)"/>
+    <path id="Fill_28" data-name="Fill 28" class="cls-2" d="M14.388,15.094H0C0,11,4.784,7.539,7.644,5.948c1.041-.579,3.522-2,3.522-3.1,0-1.184-1.52-2-3.3-2.844h3.448c1.924.594,3.747,1.906,3.747,3.281,0,1.563-.624,2.542-1.974,4.292s-.8,5.208,1.3,7.521" transform="translate(1655.5 734)"/>
+  </g>
+</svg>

@@ -1,0 +1,13 @@
+@charset "UTF-8";
+
+/*Icon fonts*/
+@import url("../js/font-awesome/css/font-awesome.min.css");
+
+/*PC版スマートフォン版共通*/
+@import url("common.css");
+/*PC版グローバル*/
+@import url("pc_global.css");
+
+@import url("pc_contents.css");
+@import url("pc_daigaku_contents.css");
+@import url("pc_contents_static.css");

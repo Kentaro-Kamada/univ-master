@@ -1,0 +1,120 @@
+//検索結果タブ
+$(document).ready(function(){
+  $(".result_panel .result_data:not("+$("ul.result_tab li a.selected").attr("href")+")").hide();
+});
+$("ul.result_tab li a").click(function(){
+  if($($(this).attr("href")).css("display")==="none"){
+   $("ul.result_tab li a").removeClass("selected");
+   $(this).addClass("selected");
+   $(".result_panel .result_data").hide(0);
+   $($(this).attr("href")).fadeIn("fast");
+   return false;
+ }else{
+   return false;
+ }
+});
+
+//詳細検索内のアコーディオン
+$(document).on("click", ".btn_accordion", function () {
+  if($("+div",this).css("display")==="none"){
+    $("+div",this).slideDown("nomal");
+    $(this).addClass("selected");
+    return false;
+  }else{
+    $(this).removeClass("selected");
+    $("+div",this).slideUp("fast");
+    return false;
+  }
+});
+
+
+//学部・研究科アコーディオン
+//国公立すべて開く
+$(document).on("click", ".open_k", function () {
+  if($(this).hasClass("selected")){
+    $(this).removeClass("selected");
+    $("#result_kokkouritsu .gakubu_dd").slideUp('nomal');
+    $("#result_kokkouritsu .gakubu_dl > dt").removeClass("selected");
+  }else{
+    $("#result_kokkouritsu .gakubu_dd").slideDown('nomal');
+    $(this).addClass("selected");
+    $("#result_kokkouritsu .gakubu_dl > dt").addClass("selected");
+  }
+});
+//私学版すべて開く
+$(document).on("click", ".open_s", function () {
+  if($(this).hasClass("selected")){
+    $(this).removeClass("selected");
+    $("#result_shigaku .gakubu_dd").slideUp('nomal');
+    $("#result_shigaku .gakubu_dl > dt").removeClass("selected");
+  }else{
+    $("#result_shigaku .gakubu_dd").slideDown('nomal');
+    $(this).addClass("selected");
+    $("#result_shigaku .gakubu_dl > dt").addClass("selected");
+  }
+});
+
+$(document).on("click", ".gakubu_dl > dt", function () {
+  if($("+dd.gakubu_dd",this).css("display")==="none"){
+    $("+dd.gakubu_dd .dd_btn",this).fadeIn(700);
+    $("+dd.gakubu_dd",this).slideDown('nomal');
+//    $(".gakubu_dl > dt").removeClass("selected");
+    $(this).addClass("selected");
+    return false;
+  }else{
+   $("+dd.gakubu_dd .dd_btn",this).fadeOut(50);
+   $("+dd.gakubu_dd",this).slideUp('nomal');
+   $(this).removeClass("selected");
+   return false;
+  }
+});
+
+
+//凡例ツールチップ
+$(document).ready(function(){
+  ToolTip_Func() ;
+});
+
+var ToolTip_Func = function(){
+  $("div.hanrei").css("opacity","1").hide();
+  // icon
+  $(".tooltip_icon_all").mouseover(function(){
+    $("div.hanrei").fadeIn().css({
+      "top":$(this).offset().top-240+"px",
+      "left":$(this).offset().left+$(this).width()-239+"px"
+    });
+  }).mouseout(function(){
+    $("div.hanrei").fadeOut();
+  });
+
+  // css
+  $(".tooltip").css({
+    opacity:"0.9",
+    position:"absolute",
+    display:"none"
+  });
+  $(".tabicon_list .ttp").mouseover(function(){
+    $("+span.tooltip",this).fadeIn(10);
+  }).mouseout(function(){
+    $("+span.tooltip",this).fadeOut(100);
+  }).mousemove(function(e){
+    $("+span.tooltip",this).css({
+      "top":-40+"px",
+      "left":-25+"px"
+    });
+  });
+} 
+
+
+//大学ページの検索アコーディオン
+$(document).on("click", ".search_form_tab", function () {
+  if($("+dd",this).css("display")==="none"){
+    $("+dd",this).slideDown("nomal");
+    $(this).addClass("selected");
+    return false;
+  }else{
+    $(this).removeClass("selected");
+    $("+dd",this).slideUp("nomal");
+    return false;
+  }
+});

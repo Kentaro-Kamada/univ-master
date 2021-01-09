@@ -1,0 +1,19 @@
+var Message = [];
+
+Message['00000'] = '更新処理が終了しました。';
+Message['FAVCI0001'] = '大学ポートレートよりお気に入りの学部を登録してからご利用ください。';
+Message['FAVCI0002'] = '1つ以上の大学を選択してください。';
+Message['FAVCI0003'] = '一度に一覧表示可能な件数は10件までです。';
+Message['FAVDI0001'] = 'お気に入りを削除してもよろしいですか？';
+Message['FAVDI0002'] = 'お気に入りを削除しました。\nお気に入りリストに反映させるには更新して下さい。';
+Message['FAVAI0001'] = 'お気に入りを登録してもよろしいですか？';
+Message['FAVAI0002'] = 'お気に入りを登録しました。\nお気に入りリストに反映させるには更新して下さい。';
+ 
+function getMessage( code, replace_str ) {
+    var str = Message[code] ;
+    for( var i = 0 ; i < replace_str.length ; i++ ) {
+        var target = "{" + i + "}" ;
+        str = str.replace( target, replace_str[i] ) ;
+    }
+   return str ;
+}
