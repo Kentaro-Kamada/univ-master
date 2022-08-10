@@ -1,10 +1,15 @@
 library(tidyverse)
 library(rvest)
-
+library(progressr)
+handlers(global = T)
+date <- Sys.Date() %>% str_replace_all('-', '.')
 
 # 一覧の取得 ---------------------------------------------------------------------------------------
+# htmlの取得→pythonのseleniumで取得
+
 # 国公立
-univ_list_national <- read_html('02_input/2020.12.08_univ list national.html')
+univ_list_national <- read_html(str_c('02_input/', date, '_univ_list_national.html'))
+
 
 tibble(
   大学名 = 
@@ -16,10 +21,10 @@ tibble(
     html_nodes('div.name_daigaku a') %>% 
     html_attr('href')
 ) %>% 
-  write_rds(file = '03_middle/univ url list national.rds')
+  write_rds(file = str_c('03_middle/', date, '_univ_url_national.rds'))
 
 # 私立
-univ_list_private <- read_html('02_input/2020.12.08_univ list private.html')
+univ_list_private <- read_html(str_c('02_input/', date, '_univ_list_private.html'))
 
 tibble(
   大学名 = 
@@ -31,35 +36,53 @@ tibble(
     html_nodes('div.name_daigaku a') %>% 
     html_attr('href')
 ) %>% 
-  write_rds(file = '03_middle/univ url list private.rds')
+  write_rds(file = str_c('03_middle/', date, '_univ_url_private.rds'))
 
-rm(list = ls())
 
 # それぞれのページから情報をとる----------------------------------------------------------------------------------
 
 # 国公立 -----------------------------------------------------------------------------------------
+# プログレスバーを表示しながらスクレイピング
+scrape_progress <- function(url, charset = '') {
+  p <- progressr::progressor(along = url)
+  map(
+    url, 
+    ~{p()
+      Sys.sleep(3)
+      read_html(., encoding = charset)
+    }
+  )
+}
 
-url_list_national <- read_rds('03_middle/univ url list national.rds')
 
-scrape_result <- 
+
+# urlリスト読み込み
+url_list_national <- read_rds(str_c('03_middle/', date, '_univ_url_national.rds'))
+
+
+
+# 各大学ページのhtml取得
+scrape_result_national <-
   url_list_national %>% 
-  mutate(bow = map(url, ~{polite::bow(url = ., user_agent = 'Sickle-sword', delay = 3)})) %>% 
-  mutate(scrape_result = map(bow,
-                             ~{polite::scrape(.x, content = list(charset = 'utf-8'))}
-  ))
+  mutate(scrape_result = scrape_progress(url))
 
-univ_master_national <- 
-  scrape_result %>% 
-  mutate(data = map(scrape_result, 
-                    ~{tibble(
-                      name = 
-                        html_nodes(., '.basic_info dt') %>% 
-                        html_text(),
-                      value = 
-                        html_nodes(., '.basic_info dd') %>% 
-                        html_text()
-                    ) 
-                    })) %>% 
+
+# 欲しい要素を抜き出す
+univ_master_national <-
+  scrape_result_national %>% 
+  mutate(
+    data = map(scrape_result, 
+               ~{tibble(
+                 name = 
+                   html_nodes(., '.basic_info dt') %>% 
+                   html_text(),
+                 value = 
+                   html_nodes(., '.basic_info dd') %>% 
+                   html_text()
+               )}
+    )
+  ) %>% 
+  # 形を整える
   select(大学名, data) %>% 
   unnest(data) %>% 
   filter(name != '大学名') %>% 
@@ -71,34 +94,50 @@ univ_master_national <-
     種別 = str_remove(種別, '（.+）')
   ) 
 
-write_rds(univ_master_national, '03_middle/univ_master_national.rds')
+write_rds(univ_master_national, str_c('03_middle/', date, '_univ_master_national.rds'))
 
 
 # 私立 ------------------------------------------------------------------------------------------
 
+url_list_private <- read_rds(str_c('03_middle/', date, '_univ_url_private.rds'))
 
-url_list_private <- read_rds('03_middle/univ url list private.rds')
+# なんかエラーになるので私大用の関数を作る
+scrape_progress_private <- function(url) {
+  p <- progressr::progressor(along = url)
+  map(url, 
+      ~{p()
+        Sys.sleep(3)
+        # 一旦生のまま読んで
+        read_file(.) %>% 
+          # エンコーディングを変換
+          str_conv('euc-jp') %>% 
+          # htmlとして読み直す
+          read_html()
+      }
+  )
+}
 
-scrape_result <-
+scrape_result_private <-
   url_list_private %>% 
+  # category01は「本学の特色」で目的のサイトはcategory08の「基本情報」
+  # 参考：https://up-j.shigaku.go.jp/school/category08/00000000271201000.html
   mutate(url = str_replace(url, 'category01', 'category08')) %>% 
-  mutate(bow = map(url, ~{polite::bow(url = ., user_agent = 'Sickle-sword', delay = 3)})) %>% 
-  mutate(scrape_result = map_chr(bow, 
-                                 ~{polite::scrape(., content = list(charset = 'euc-jp')) %>%
-                                     str_conv('euc-jp')
-                                 }
-  ))
+  # 各大学ページのhtml取得
+  # 文字コードに注意
+  mutate(scrape_result = scrape_progress_private(url))
+
 
 univ_master_private <-
-  scrape_result %>% 
+  scrape_result_private %>% 
   mutate(
     本部所在地 = 
-      str_extract(scrape_result,
-                  '(?<=td class="univ_content04"><span itemprop="description">).+(?=</span></td>)') %>% 
+      map_chr(scrape_result,
+              ~html_element(., 'span[itemprop=description]') %>% html_text()) %>% 
       stringi::stri_trans_nfkc(),
     設立年 = 
-      str_extract(scrape_result,
-                  '(?<=<td class="univ_content03" colspan="2"><span itemprop="foundingDate">).+(?=</span></td>)')
+      map_chr(scrape_result,
+              ~html_element(., 'span[itemprop=foundingDate]') %>% html_text()) %>% 
+      stringi::stri_trans_nfkc()
   ) %>% 
   select(大学名, 本部所在地, 設立年) %>% 
   mutate(
@@ -106,13 +145,13 @@ univ_master_private <-
     種別 = case_when(str_detect(大学名, '短期大学') ~ '私立・短期大学', TRUE ~ '私立・大学')
   )
   
-write_rds(univ_master_private, '03_middle/univ_master_private.rds')
+write_rds(univ_master_private, str_c('03_middle/', date, '_univ_master_private.rds'))
 
 
 # データ合併 ---------------------------------------------------------------------------------------
 
-univ_master_national <- read_rds('03_middle/univ_master_national.rds')
-univ_master_private <- read_rds('03_middle/univ_master_private.rds')
+univ_master_national <- read_rds(str_c('03_middle/', date, '_univ_master_national.rds'))
+univ_master_private <- read_rds(str_c('03_middle/', date, '_univ_master_private.rds'))
 
 univ_master <- 
   bind_rows(
@@ -120,4 +159,4 @@ univ_master <-
     univ_master_private 
   )
 
-write_rds(univ_master, '03_middle/univ_master.rds')
+write_rds(univ_master, str_c('03_middle/', date, '_univ_master.rds'))
