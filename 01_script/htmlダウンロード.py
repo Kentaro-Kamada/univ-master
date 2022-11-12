@@ -1,4 +1,4 @@
-import selenium
+from selenium import webdriver
 import datetime
 import time
 # 本日の日付
@@ -6,7 +6,7 @@ date = str(datetime.date.today()).replace('-', '.')
 
 
 # chromeの起動
-driver = selenium.webdriver.Chrome()
+driver = webdriver.Chrome()
 
 ###### 国公立大学の取得
 # 大学ポートレートのサイトを起動
