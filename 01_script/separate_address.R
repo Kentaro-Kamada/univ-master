@@ -1,7 +1,7 @@
 library(tidyverse)
 library(zipangu)
 
-data <- read_rds('03_middle/2022.08.10_univ_master.rds')
+data <- read_rds('03_middle/2022.11.13_univ_master.rds')
 
 df <- 
   data %>% 
